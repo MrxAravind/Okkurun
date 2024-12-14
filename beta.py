@@ -83,13 +83,15 @@ def generate_reddit_post_image(post_data, output_path="reddit_post.png"):
 
     # Badge (Optional Sci-Fi style)
     badge_text = "Story"
-    badge_width, badge_height = draw.textsize(badge_text, font=small_font)
+    bbox = draw.textbbox((0, 0), badge_text, font=small_font)
+    badge_width = bbox[2] - bbox[0]
+    badge_height = bbox[3] - bbox[1]
     badge_padding = 10
     badge_rect = [margin, y_position, margin + badge_width + badge_padding * 2, y_position + badge_height + badge_padding]
     draw.rectangle(badge_rect, fill=highlight_color)
     draw.text((margin + badge_padding, y_position + badge_padding / 2), badge_text, font=small_font, fill=(0, 0, 0))
     y_position += 70
-
+    
     # Footer
     footer_text = f"💬 {post_data['num_comments']} Comments"
     draw.text((margin, img_height - margin), footer_text, font=small_font, fill=text_color)
