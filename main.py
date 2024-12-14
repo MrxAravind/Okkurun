@@ -1,146 +1,55 @@
 import praw
+import requests
 import os
-from playwright.sync_api import sync_playwright
 
-def fetch_subreddit_posts(subreddit_name, limit=10):
-    """
-    Fetch posts from a specified subreddit, excluding NSFW content.
-    
-    Args:
-    subreddit_name (str): Name of the subreddit to fetch posts from
-    limit (int, optional): Maximum number of posts to retrieve. Defaults to 10.
-    
-    Returns:
-    list: A list of dictionaries containing post details
-    """
+def capture_reddit_screenshots(subreddit_name, limit=5):
     # Reddit API credentials
     reddit = praw.Reddit(
-    client_id="SFSkzwY_19O3mOsbuwukqg",
-    client_secret="ZDGonQJlJHIIz59ubKv-U8Dyho_V2w",
-    password="hatelenovo",
-    user_agent="testscript by u/Severe_Asparagus_103",
-    username="Severe_Asparagus_103",
-    check_for_async=False
+        client_id="SFSkzwY_19O3mOsbuwukqg",
+        client_secret="ZDGonQJlJHIIz59ubKv-U8Dyho_V2w",
+        password="hatelenovo",
+        user_agent="testscript by u/Severe_Asparagus_103",
+        username="Severe_Asparagus_103",
+        check_for_async=False
     )
-    
-    # Select the subreddit
+
+    # Create screenshots directory
+    os.makedirs('reddit_screenshots', exist_ok=True)
+
+    # Fetch posts from subreddit
     subreddit = reddit.subreddit(subreddit_name)
     
-    # List to store post details
-    posts_list = []
-    
-    # Fetch posts (can use .hot(), .new(), .top(), etc.)
-    try:
-        for post in subreddit.hot(limit=limit*2):  # Fetch more to account for filtered posts
-            # Skip NSFW posts
-            if post.over_18:
-                continue
+    for i, post in enumerate(subreddit.hot(limit=limit), 1):
+        try:
+            # Construct full Reddit URL
+            full_url = f'https://www.reddit.com{post.permalink}'
             
-            post_details = {
-                'title': post.title,
-                'url': post.permalink,  # Full Reddit post URL
-                'content': post.selftext,
-                'score': post.score,
-                'num_comments': post.num_comments
+            # Use screenshot API service
+            screenshot_api_url = f'https://api.urlbox.io/v1/render?url={full_url}&full_page=true&format=png'
+            
+            # Headers to mimic browser request
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
-            posts_list.append(post_details)
             
-            # Break if we've reached the desired number of non-NSFW posts
-            if len(posts_list) == limit:
-                break
-    
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    
-    return posts_list
-
-def capture_reddit_post_titles(subreddit_name, limit=10, output_dir='reddit_screenshots'):
-    """
-    Capture screenshots of Reddit post titles from a specified subreddit.
-    
-    Args:
-    subreddit_name (str): Name of the subreddit to fetch posts from
-    limit (int, optional): Maximum number of posts to capture. Defaults to 10.
-    output_dir (str, optional): Directory to save screenshots. Defaults to 'reddit_screenshots'.
-    """
-    # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Fetch posts
-    posts = fetch_subreddit_posts(subreddit_name, limit)
-    
-    # Use Playwright to capture screenshots
-    with sync_playwright() as p:
-        # Launch browser in headless mode
-        browser = p.chromium.launch(
-            headless=True,  # Ensure headless mode
-            args=['--no-sandbox', '--disable-setuid-sandbox']  # Add these for better compatibility
-        )
-        
-        # Create a new browser context with specific viewport
-        context = browser.new_context(
-            viewport={'width': 1280, 'height': 800},
-            device_scale_factor=2  # For higher resolution screenshots
-        )
-        
-        # Disable images and stylesheets to speed up loading
-        context.route('**/*', lambda route: route.abort() 
-            if route.request.resource_type in ['image', 'stylesheet', 'font'] 
-            else route.continue_())
-        
-        page = context.new_page()
-        
-        # Capture screenshots for each post
-        for i, post in enumerate(posts, 1):
-            try:
-                # Navigate to the full Reddit post URL
-                page.goto(f'https://www.reddit.com{post["url"]}', 
-                          wait_until='networkidle', 
-                          timeout=30000)  # Increased timeout
-                
-                # Generate base filename (sanitize title to use as filename)
-                safe_filename = "".join(x for x in post['title'] if x.isalnum() or x in [' ', '-', '_']).rstrip()
-                safe_filename = safe_filename[:50]  # Limit filename length
-                
-                # Take full page screenshot first
-                full_page_screenshot_path = os.path.join(output_dir, f'{i}_full_post_{safe_filename}.png')
-                page.screenshot(
-                    path=full_page_screenshot_path,
-                    full_page=True,
-                    type='png'
-                )
-                print(f"Full page screenshot saved: {full_page_screenshot_path}")
-                
-                # Wait for the title element to be visible
-                page.wait_for_selector('h1[slot="title"]', timeout=10000)
-                
-                # Find the title element
-                title_element = page.query_selector('h1[slot="title"]')
-                
-                if title_element:
-                    # Take screenshot of the title element
-                    title_screenshot_path = os.path.join(output_dir, f'{i}_title_post_{safe_filename}.png')
-                    title_element.screenshot(
-                        path=title_screenshot_path,
-                        type='png',
-                        scale='device'  # Ensures high-quality screenshot
-                    )
-                    print(f"Title screenshot saved: {title_screenshot_path}")
-                else:
-                    print(f"Could not find title element for post {i}")
+            # Fetch screenshot
+            response = requests.get(screenshot_api_url, headers=headers)
             
-            except Exception as e:
-                print(f"Error capturing screenshot for post {i}: {e}")
+            if response.status_code == 200:
+                # Sanitize filename
+                safe_filename = "".join(x for x in post.title if x.isalnum() or x in [' ', '-', '_']).rstrip()[:50]
+                
+                # Save screenshot
+                screenshot_path = f'reddit_screenshots/{i}_post_{safe_filename}.png'
+                with open(screenshot_path, 'wb') as f:
+                    f.write(response.content)
+                
+                print(f"Screenshot saved: {screenshot_path}")
+            else:
+                print(f"Failed to capture screenshot for post {i}")
         
-        # Close browser
-        browser.close()
+        except Exception as e:
+            print(f"Error processing post {i}: {e}")
 
-def main():
-    # Example usage
-    subreddit_name = 'story'
-    
-    # Capture screenshots of post titles
-    capture_reddit_post_titles(subreddit_name, limit=5)
-
-if __name__ == "__main__":
-    main()
+# Example usage
+capture_reddit_screenshots('story', limit=5)
