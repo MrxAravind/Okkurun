@@ -72,20 +72,23 @@ def capture_reddit_post_titles(subreddit_name, limit=10, output_dir='reddit_scre
     # Use Playwright to capture screenshots
     with sync_playwright() as p:
         # Launch browser
-        browser = p.chromium.launch()
-        page = browser.new_page()
+        browser = p.chromium.launch(headless=False)  # Set to False to see browser
+        context = browser.new_context()
+        page = context.new_page()
         
         # Capture screenshots for each post
         for i, post in enumerate(posts, 1):
             try:
                 # Navigate to the full Reddit post URL
-                page.goto(f'https://www.reddit.com{post["url"]}')
+                page.goto(f'https://www.reddit.com{post["url"]}', 
+                          wait_until='networkidle')
                 
                 # Wait for the title element to be visible
-                page.wait_for_selector('h1')
+                # Updated selector based on the HTML snippet you provided
+                page.wait_for_selector('h1[slot="title"]', timeout=10000)
                 
                 # Find the title element
-                title_element = page.query_selector('h1')
+                title_element = page.query_selector('h1[slot="title"]')
                 
                 if title_element:
                     # Generate filename (sanitize title to use as filename)
