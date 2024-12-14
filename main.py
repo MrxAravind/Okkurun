@@ -98,6 +98,19 @@ def capture_reddit_post_titles(subreddit_name, limit=10, output_dir='reddit_scre
                           wait_until='networkidle', 
                           timeout=30000)  # Increased timeout
                 
+                # Generate base filename (sanitize title to use as filename)
+                safe_filename = "".join(x for x in post['title'] if x.isalnum() or x in [' ', '-', '_']).rstrip()
+                safe_filename = safe_filename[:50]  # Limit filename length
+                
+                # Take full page screenshot first
+                full_page_screenshot_path = os.path.join(output_dir, f'{i}_full_post_{safe_filename}.png')
+                page.screenshot(
+                    path=full_page_screenshot_path,
+                    full_page=True,
+                    type='png'
+                )
+                print(f"Full page screenshot saved: {full_page_screenshot_path}")
+                
                 # Wait for the title element to be visible
                 page.wait_for_selector('h1[slot="title"]', timeout=10000)
                 
@@ -105,18 +118,14 @@ def capture_reddit_post_titles(subreddit_name, limit=10, output_dir='reddit_scre
                 title_element = page.query_selector('h1[slot="title"]')
                 
                 if title_element:
-                    # Generate filename (sanitize title to use as filename)
-                    safe_filename = "".join(x for x in post['title'] if x.isalnum() or x in [' ', '-', '_']).rstrip()
-                    safe_filename = safe_filename[:50]  # Limit filename length
-                    screenshot_path = os.path.join(output_dir, f'{i}_post_{safe_filename}.png')
-                    
                     # Take screenshot of the title element
+                    title_screenshot_path = os.path.join(output_dir, f'{i}_title_post_{safe_filename}.png')
                     title_element.screenshot(
-                        path=screenshot_path,
+                        path=title_screenshot_path,
                         type='png',
                         scale='device'  # Ensures high-quality screenshot
                     )
-                    print(f"Screenshot saved: {screenshot_path}")
+                    print(f"Title screenshot saved: {title_screenshot_path}")
                 else:
                     print(f"Could not find title element for post {i}")
             
