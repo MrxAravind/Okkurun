@@ -71,9 +71,23 @@ def capture_reddit_post_titles(subreddit_name, limit=10, output_dir='reddit_scre
     
     # Use Playwright to capture screenshots
     with sync_playwright() as p:
-        # Launch browser
-        browser = p.chromium.launch(headless=False)  # Set to False to see browser
-        context = browser.new_context()
+        # Launch browser in headless mode
+        browser = p.chromium.launch(
+            headless=True,  # Ensure headless mode
+            args=['--no-sandbox', '--disable-setuid-sandbox']  # Add these for better compatibility
+        )
+        
+        # Create a new browser context with specific viewport
+        context = browser.new_context(
+            viewport={'width': 1280, 'height': 800},
+            device_scale_factor=2  # For higher resolution screenshots
+        )
+        
+        # Disable images and stylesheets to speed up loading
+        context.route('**/*', lambda route: route.abort() 
+            if route.request.resource_type in ['image', 'stylesheet', 'font'] 
+            else route.continue_())
+        
         page = context.new_page()
         
         # Capture screenshots for each post
@@ -81,10 +95,10 @@ def capture_reddit_post_titles(subreddit_name, limit=10, output_dir='reddit_scre
             try:
                 # Navigate to the full Reddit post URL
                 page.goto(f'https://www.reddit.com{post["url"]}', 
-                          wait_until='networkidle')
+                          wait_until='networkidle', 
+                          timeout=30000)  # Increased timeout
                 
                 # Wait for the title element to be visible
-                # Updated selector based on the HTML snippet you provided
                 page.wait_for_selector('h1[slot="title"]', timeout=10000)
                 
                 # Find the title element
@@ -97,7 +111,11 @@ def capture_reddit_post_titles(subreddit_name, limit=10, output_dir='reddit_scre
                     screenshot_path = os.path.join(output_dir, f'{i}_post_{safe_filename}.png')
                     
                     # Take screenshot of the title element
-                    title_element.screenshot(path=screenshot_path)
+                    title_element.screenshot(
+                        path=screenshot_path,
+                        type='png',
+                        scale='device'  # Ensures high-quality screenshot
+                    )
                     print(f"Screenshot saved: {screenshot_path}")
                 else:
                     print(f"Could not find title element for post {i}")
