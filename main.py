@@ -1,5 +1,6 @@
 import praw
 import os
+from playwright.sync_api import sync_playwright
 
 def fetch_subreddit_posts(subreddit_name, limit=10):
     """
@@ -37,8 +38,8 @@ def fetch_subreddit_posts(subreddit_name, limit=10):
             
             post_details = {
                 'title': post.title,
-                'content': post.selftext,  # Text content for self posts
-                'url': post.url,  # URL of the post or linked content
+                'url': post.permalink,  # Full Reddit post URL
+                'content': post.selftext,
                 'score': post.score,
                 'num_comments': post.num_comments
             }
@@ -53,18 +54,63 @@ def fetch_subreddit_posts(subreddit_name, limit=10):
     
     return posts_list
 
-def main():
-    subreddit_name = 'story'  # Change this to the subreddit you want to fetch
-    posts = fetch_subreddit_posts(subreddit_name, limit=10)
+def capture_reddit_post_titles(subreddit_name, limit=10, output_dir='reddit_screenshots'):
+    """
+    Capture screenshots of Reddit post titles from a specified subreddit.
     
-    for i, post in enumerate(posts, 1):
-        print(f"Post {i}:")
-        print(f"Title: {post['title']}")
-        print(f"Content: {post['content']}...")  # Print content
-        print(f"URL: {post['url']}")
-        print(f"Score: {post['score']}")
-        print(f"Comments: {post['num_comments']}")
-        print("-" * 50)
+    Args:
+    subreddit_name (str): Name of the subreddit to fetch posts from
+    limit (int, optional): Maximum number of posts to capture. Defaults to 10.
+    output_dir (str, optional): Directory to save screenshots. Defaults to 'reddit_screenshots'.
+    """
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Fetch posts
+    posts = fetch_subreddit_posts(subreddit_name, limit)
+    
+    # Use Playwright to capture screenshots
+    with sync_playwright() as p:
+        # Launch browser
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        
+        # Capture screenshots for each post
+        for i, post in enumerate(posts, 1):
+            try:
+                # Navigate to the full Reddit post URL
+                page.goto(f'https://www.reddit.com{post["url"]}')
+                
+                # Wait for the title element to be visible
+                page.wait_for_selector('h1')
+                
+                # Find the title element
+                title_element = page.query_selector('h1')
+                
+                if title_element:
+                    # Generate filename (sanitize title to use as filename)
+                    safe_filename = "".join(x for x in post['title'] if x.isalnum() or x in [' ', '-', '_']).rstrip()
+                    safe_filename = safe_filename[:50]  # Limit filename length
+                    screenshot_path = os.path.join(output_dir, f'{i}_post_{safe_filename}.png')
+                    
+                    # Take screenshot of the title element
+                    title_element.screenshot(path=screenshot_path)
+                    print(f"Screenshot saved: {screenshot_path}")
+                else:
+                    print(f"Could not find title element for post {i}")
+            
+            except Exception as e:
+                print(f"Error capturing screenshot for post {i}: {e}")
+        
+        # Close browser
+        browser.close()
+
+def main():
+    # Example usage
+    subreddit_name = 'story'
+    
+    # Capture screenshots of post titles
+    capture_reddit_post_titles(subreddit_name, limit=5)
 
 if __name__ == "__main__":
     main()
