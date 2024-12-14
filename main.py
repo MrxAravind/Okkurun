@@ -53,13 +53,13 @@ def fetch_subreddit_posts(subreddit_name, limit=10):
 def main():
     # Example usage
     subreddit_name = 'askreddit'  # Change this to the subreddit you want to fetch
-    posts = fetch_subreddit_posts(subreddit_name, limit=5)
+    posts = fetch_subreddit_posts(subreddit_name, limit=10)
     
     # Print out the fetched posts
     for i, post in enumerate(posts, 1):
         print(f"Post {i}:")
         print(f"Title: {post['title']}")
-        print(f"Content: {post['content'][:200]}...")  # Print first 200 chars
+        print(f"Content: {post['content']}...")  # Print first 200 chars
         print(f"URL: {post['url']}")
         print(f"Score: {post['score']}")
         print(f"Comments: {post['num_comments']}")
