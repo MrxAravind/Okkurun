@@ -52,7 +52,7 @@ def fetch_subreddit_posts(subreddit_name, limit=10):
 
 def main():
     # Example usage
-    subreddit_name = 'askreddit'  # Change this to the subreddit you want to fetch
+    subreddit_name = 'story'  # Change this to the subreddit you want to fetch
     posts = fetch_subreddit_posts(subreddit_name, limit=10)
     
     # Print out the fetched posts
