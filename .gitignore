@@ -1,0 +1,49 @@
+# Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment directories
+env/
+venv/
+ENV/
+.venv/
+
+# Python distribution/packaging
+*.egg-info/
+dist/
+build/
+
+# IDE/editor directories and files
+.vscode/
+.idea/
+*.swp
+*.sublime-workspace
+*.sublime-project
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Pytest cache
+.cache
+
+# mypy
+.mypy_cache/
+
+# Python coverage report
+.coverage
+*.coveragerc
+
+# Pylint reports
+pylint-report.txt
+pylint-global.rc
+
+# VS Code settings
+.vscode/
+
+# macOS specific
+.DS_Store
+
+# Windows specific
+Thumbs.db
+Desktop.ini

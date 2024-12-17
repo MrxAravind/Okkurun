@@ -1,0 +1,5 @@
+azure-ai-inference
+praw
+assemblyai
+moviepy
+python-dotenv
