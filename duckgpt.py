@@ -68,3 +68,11 @@ class DuckGPT:
             return ''.join(messages)
         else:
             raise self.OperationError("Chat(): " + response.text)
+if __name__ == "__main__":
+    Client = DuckGPT(model="gpt-4o-mini")
+    histories = [{
+        "role": "user",
+        "content": "you are an expert python geek"
+    }]
+    question = "How to decode base64 using python"
+    print(Client.Chat(question, histories))
